@@ -137,7 +137,7 @@ class OriginStamp
 	public function getKeyStats()
 	{
 		$info = $this->webRequest('http://www.originstamp.org/api_keys/'.$this->api_key);
-		if(strpos($info, 'Times used')===false) return false
+		if(strpos($info, 'Times used')===false) return false;
 		$matches = array();
 		preg_match('/<strong>Times used<\/strong>\n?<p>\n?(\d+)\n?<\/p>\n?<p>\n?This key expires after creating (.*?) stamps\n?<\/p>\n?<p>\n?Stamps left: ([\d,]+)\n?<\/p>/', $info, $matches);
 		if(count($matches) != 3) throw new Exception('getKeyStats: Fatal Regex Error');
