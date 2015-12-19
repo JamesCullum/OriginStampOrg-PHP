@@ -1,6 +1,6 @@
 <?php 
 /**
-* Handler Class for OriginStamp.org, Revision 1
+* Handler Class for OriginStamp.org, Revision 2
 * Created by Nicolas Giese, published under MIT License
 * Requires CURL for PHP & OriginStamp.org API key
 * See http://www.originstamp.org/developer for further details & the api key 
@@ -60,18 +60,17 @@ class OriginStamp
 	* @param string $hash containing a hash of up to 64 characters (for example sha256)
 	* @param string $title (optional) contains the title for the hash, visible during fast verification
 	* @param string $email (optional) contains an email address where the creation receipt is sent to
+	* @param boolean $email_send (optional) whether or not the email address should get all informations by email
 	* @return json
 	*/
-	public function submitHash($hash, $title = "", $email = "")
+	public function submitHash($hash, $title = "", $email = "", $email_send = false)
 	{
 		if(strlen($hash)>64) throw new Exception('submitHash: Hash length exceeds 64 characters');
 		$request = array( "hash_sha256" => $hash );
 		if(!empty($title)) $request["title"] = $title;
-		if(!empty($email))
-		{
-			$request["sender"] = $email;
-			$request["send_back"] = 1;
-		}
+		if(!empty($email)) $request["sender"] = $email;
+		if(!empty($email) && $email_send) $request["send_back"] = 1;
+
 		return json_decode( $this->webRequest($this->api_url, json_encode($request) ) );
 	}
 	
@@ -98,6 +97,7 @@ class OriginStamp
 	* 	Hash not submitted to blockchain = array
 	* 		isLive = False
 	*		timeLeft = Time in seconds until it will be added to the blockchain
+	*		temporary = Content of fast verification
 	*	Hash submitted to blockchain = array
 	*		isLive = True
 	*		transaction-url = URL to the transaction in the blockchain
@@ -115,7 +115,7 @@ class OriginStamp
 		elseif(strpos($source, 'The hash hasn\'t been submitted to the Bitcoin blockchain yet.')!==false)
 		{
 			$timeleft = mktime(23,59,59) + 1 - time();
-			return array("isLive" => false, "timeLeft" => $timeleft);
+			return array("isLive" => false, "timeLeft" => $timeleft, "temporary" => $this->verifyHash($hash));
 		}
 		elseif(preg_match('/<i class=\'fa fa-external-link\'><\/i>\n?<a href="(.*?)">See the corresponding Bitcoin transaction<\/a>.*?<h5.*?>Transaction Seed<\/h5>\n?<pre>([A-Za-z0-9 ]+)<\/pre>.*?<h5.*?>Key-Pair<\/h5>\n?<pre>Secret ([A-Za-z0-9 ]+)<\/pre>\n<pre>Public Key ([A-Za-z0-9 ]+)<\/pre>.*?<h5.*?>Recipient address<\/h5>\n?<div.*?>\n?<strong>([A-Za-z0-9 ]+)<\/strong>/s', $source, $matches))
 		{
